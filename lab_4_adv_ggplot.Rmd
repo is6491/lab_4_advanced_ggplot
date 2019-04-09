@@ -1,0 +1,263 @@
+---
+title: "Lab 4 : Advanced ggplot"
+author: "Jeremy Morris"
+date: "2/21/2019"
+output: 
+  html_document: 
+    theme: cosmo
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(tidyverse)
+library(here)
+library(nlme)
+```
+
+
+# Components of a basic plot
+
+# create initial plot
+```{r basic}
+ggplot(data = mpg, aes(x=displ, y=hwy, colour = factor(cyl))) +
+  geom_point()
+```
+
+What is happening with above call to ggplot? The first part of the call maps aesthetics to data. The call to `summary` helps us look at the plot object.
+
+```{r basic_summary}
+p <- ggplot(data = mpg, aes(x=displ, y=hwy, colour = factor(cyl)))
+summary(p) 
+```
+
+The resulting mapping is as follows (showing the top 10 rows only)
+```{r mapping}
+head(data.frame(x=mpg$displ, y=mpg$hwy, colour=factor(mpg$cyl)), n = 10)
+```
+
+Note that it can't be plotted yet because there are no layers at this point
+```{r basic_plot}
+p 
+```
+
+To add a layer we add a geometric object (a.k.a geom); in this case it's a point geom
+
+```{r add_geom}
+p <- p + geom_point()
+summary(p) # examine the components of the plot
+```
+
+Now that there is a layer, it can be plotted. Note that we can save a plot to a variable and then plot it by calling just that variable. We can also assign a base visualization to a variable and then add to it later. We'll see that a little as we go on.
+```{r plot}
+p # plot it
+```
+
+Applying other geoms; the geom type determines the type of the plot
+line: grammatically correct, but doesn't make sense
+
+```{r line_wrong}
+ggplot(data = mpg, aes(x=displ, y=hwy, colour = factor(cyl))) +
+  geom_line()
+```
+
+bar: grammatically correct, but doesn't make sense
+
+```{r bar_wrong}
+ggplot(data = mpg, aes(x=displ, y=hwy, colour = factor(cyl))) +
+  geom_bar(stat="identity") 
+```
+
+Refer to lab 2 for a list of all `geoms`
+
+Lets go back to the original scatter plot and add some regressions
+```{r add_regression1}
+p <- ggplot(data = mpg, aes(x=displ, y=hwy, colour = factor(cyl))) +
+  geom_point()
+```
+
+Now create an additional layer with a regression. Note how we're adding `geom_smooth` to the existing plot.
+```{r add_regression2}
+p + geom_smooth()
+```
+
+What happens if we add the mappings at the geom level?
+```{r add_to_geom}
+ggplot(data = mpg) +
+  geom_point(aes(x=displ, y=hwy, colour = factor(cyl))) +
+  geom_smooth(aes(x=displ,y=hwy))
+```
+
+# scaling and coordinates
+# We need to convert from data units (e.g., litres, miles per gallon and number 
+# of cylinders) to physical units (e.g., pixels and colours) that the computer 
+# can display. This conversion process is called scaling and performed by scales.
+
+# linear data is mapped to a [0,1] scale
+
+# coordinate system in ggplot2 maps to pixels
+# consider: cartesian coordinates, polar coordinates, color space
+
+# To create a complete plot we need to combine graphical objects from three 
+# sources: the data, represented by the point geom; the scales and coordinate 
+# system, which generate axes and legends so that we can read values from the 
+# graph; and plot annotations, such as the background and plot title.
+
+# below represents the scaling from [0,1] for the continuous variables 
+# (displ, hwy) and the colour mapping for the variable factor(cyl)
+
+# x     y     colour  size shape
+# ￼0.037 0.531 #FF6C91 1 19
+# 0.037 0.531 #FF6C91 1 19 
+# 0.074 0.594 #FF6C91 1 19 
+# 0.074 0.562 #FF6C91 1 19 
+# 0.222 0.438 #00C1A9 1 19 
+# 0.222 0.438 #00C1A9 1 19 
+# 0.278 0.469 #00C1A9 1 19 
+# 0.037 0.438 #FF6C91 1 19 
+# 0.037 0.406 #FF6C91 1 19 
+# 0.074 0.500 #FF6C91 1 19
+
+# a final look at the plot
+ggplot(data = mpg, aes(x=displ, y=hwy, colour = factor(cyl))) +
+  geom_point()
+
+# components of a more advanced plot including multiple layers, facets, and stats ####
+# start with a new plot
+ggplot(data = mpg, aes(x=displ, y=hwy)) +
+  geom_point() +
+  geom_smooth()
+
+# note that stat_smooth is an alias for geom_smooth
+ggplot(data = mpg, aes(x=displ, y=hwy)) +
+  geom_point() +
+  stat_smooth() # this is the same plot
+
+# now create a facet by year
+p <- ggplot(data = mpg, aes(x=displ, y=hwy,color=factor(cyl))) + 
+  geom_point() +
+  # geom_smooth() +
+  facet_grid(. ~ year)
+p # plot it
+
+ggplot(data = mpg, aes(x=displ, y=hwy)) + 
+    geom_point() +
+    # geom_smooth() +
+    facet_grid(cyl ~ year,scales='free_y')
+
+# now change the grid to be vertical
+p <- ggplot(data = mpg, aes(x=displ, y=hwy)) + 
+  geom_point() +
+  geom_smooth() +
+  facet_grid(year ~ .)
+p # plot it
+
+summary(p) # examine the components of the plot
+
+# now change the default method to lm
+p <- ggplot(data = mpg, aes(x=displ, y=hwy)) + 
+  geom_point() +
+  geom_smooth(method = "lm") +
+  facet_grid(year ~ .)
+p # plot it
+
+summary(p) # examine the components of the plot
+
+# review related slides - second time ####
+# see: AUX_lab-04_advanced-ggplot2_v1.x.pptx
+
+# build a plot layer by layer ####
+p <- ggplot(diamonds, aes(x=carat))
+summary(p)
+p # recall that we cannot render it yet without a layer
+
+# add a layer the long way
+p <- p + layer(
+  geom = "bar"
+  , geom_params = list(fill = "steelblue")
+  , stat = "bin"
+  , stat_params = list(binwidth = 2)
+)
+summary(p)
+p # now we can render it
+
+# add a layer the the short way
+p <- ggplot(diamonds, aes(x=carat)) +
+  geom_histogram(binwidth = 2, fill = "steelblue")
+summary(p)
+p # rendering is the same
+
+# geom_histogram() have default values for their geom and are therefore
+# easier/faster to use as compared to the layer() call; geom_XXX are called
+# shortcut functions
+
+# overriding default mappings in layer ####
+p <- ggplot(mtcars, aes(x = mpg, y=wt))
+p <- p + geom_point()
+p
+
+# override default color
+p <- p + geom_point(aes(colour=factor(cyl)))
+p # this makes sense
+
+# override x mapping
+p <- p + geom_point(aes(x=disp))
+p # looks strange; notice the extra points and the larger range of x
+
+# setting an aesthetic vs. mapping it ####
+p <- ggplot(mtcars, aes(x=mpg, y=wt))
+p <- p + geom_point(colour = "darkblue") # example of setting (vs. mapping)
+summary(p)
+p
+
+# now try mapping but using the constant value of "darkblue"
+p <- ggplot(mtcars, aes(x=mpg, y=wt))
+p <- p + geom_point(aes(colour = "darkblue")) # example of mapping (vs. setting)
+summary(p)
+p # why isn't it dark blue?
+
+# "This effectively creates a new variable containing only the value “darkblue” 
+# and then maps colour to that new variable. Because this value is discrete, the 
+# default colour scale uses evenly spaced colours on the colour wheel, and since 
+# there is only one value this colour is pinkish."
+
+# grouping observations ####
+# geoms can be roughly divided into individual and collective geoms. An individual 
+# geom has a distinctive graphical object for each row in the data frame. For example, 
+# the point geom has a single point for each observation. On the other hand, 
+# collective geoms represent multiple observations. This may be a result of a 
+# statistical summary, or may be fundamental to the display of the geom, as 
+# with polygons. Lines and paths fall somewhere in between: each overall line 
+# is composed of a set of straight segments, but each segment represents two points.
+
+
+# examine the data 
+?Oxboys
+summary(Oxboys)
+str(Oxboys)
+
+# plot a line per subject
+p <- ggplot(Oxboys, aes(x=age, y=height)) +
+  geom_line()
+p # this looks strange; the line is going through all of the points instead
+# or rendering a line per subject
+
+# correct this using the group aesthetics
+p <- ggplot(Oxboys, aes(x=age, y=height, group=Subject)) +
+  geom_line()
+p
+summary(p)
+
+# now plot a linear fit for the whole dataset
+p <- ggplot(Oxboys, aes(age, height, group = Subject)) +
+  geom_line() + 
+  geom_smooth(method="lm", se=FALSE)
+p
+
+# use group = 1 to ungroup from the main call to ggplot
+p <- ggplot(Oxboys, aes(age, height, group = Subject)) +
+  geom_line() + 
+  geom_smooth(aes(group = 1), method="lm", se=FALSE)
+p
+
+  
