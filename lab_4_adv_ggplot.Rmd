@@ -1,7 +1,6 @@
 ---
 title: "Lab 4 : Advanced ggplot"
 author: "Jeremy Morris"
-date: "2/21/2019"
 output: 
   html_document: 
     theme: cosmo
@@ -13,6 +12,9 @@ library(ggplot2)
 library(tidyverse)
 library(here)
 library(nlme)
+library(nycflights13)
+library(hrbrthemes)
+library(ggrepel)
 ```
 
 
@@ -88,176 +90,120 @@ ggplot(data = mpg) +
   geom_smooth(aes(x=displ,y=hwy))
 ```
 
-# scaling and coordinates
-# We need to convert from data units (e.g., litres, miles per gallon and number 
-# of cylinders) to physical units (e.g., pixels and colours) that the computer 
-# can display. This conversion process is called scaling and performed by scales.
+## Facet
 
-# linear data is mapped to a [0,1] scale
+Facets allow you to break one chart into multiples. This can be helpful if you have too many dimensions and want to represent something more complex. Each of the facets will have the same format, just split on a specific value from the data.
 
-# coordinate system in ggplot2 maps to pixels
-# consider: cartesian coordinates, polar coordinates, color space
+The following creates a facet by year.
 
-# To create a complete plot we need to combine graphical objects from three 
-# sources: the data, represented by the point geom; the scales and coordinate 
-# system, which generate axes and legends so that we can read values from the 
-# graph; and plot annotations, such as the background and plot title.
-
-# below represents the scaling from [0,1] for the continuous variables 
-# (displ, hwy) and the colour mapping for the variable factor(cyl)
-
-# x     y     colour  size shape
-# ￼0.037 0.531 #FF6C91 1 19
-# 0.037 0.531 #FF6C91 1 19 
-# 0.074 0.594 #FF6C91 1 19 
-# 0.074 0.562 #FF6C91 1 19 
-# 0.222 0.438 #00C1A9 1 19 
-# 0.222 0.438 #00C1A9 1 19 
-# 0.278 0.469 #00C1A9 1 19 
-# 0.037 0.438 #FF6C91 1 19 
-# 0.037 0.406 #FF6C91 1 19 
-# 0.074 0.500 #FF6C91 1 19
-
-# a final look at the plot
-ggplot(data = mpg, aes(x=displ, y=hwy, colour = factor(cyl))) +
-  geom_point()
-
-# components of a more advanced plot including multiple layers, facets, and stats ####
-# start with a new plot
-ggplot(data = mpg, aes(x=displ, y=hwy)) +
+```{r facet1}
+ggplot(data = mpg, aes(x=displ, y=hwy,color=factor(cyl))) + 
   geom_point() +
-  geom_smooth()
-
-# note that stat_smooth is an alias for geom_smooth
-ggplot(data = mpg, aes(x=displ, y=hwy)) +
-  geom_point() +
-  stat_smooth() # this is the same plot
-
-# now create a facet by year
-p <- ggplot(data = mpg, aes(x=displ, y=hwy,color=factor(cyl))) + 
-  geom_point() +
-  # geom_smooth() +
   facet_grid(. ~ year)
-p # plot it
+```
 
+The `facet_grind` function allows you to specify a split for rows and columns. The following plot splits by `cyl` and `year` in the rows and columns respectively. Facets also allow you to control how standardized the plots are. By default, all axes will share the same dimensions. The following shows how to allow the y-axis to have its own limits.
+```{r free_y}
 ggplot(data = mpg, aes(x=displ, y=hwy)) + 
     geom_point() +
-    # geom_smooth() +
     facet_grid(cyl ~ year,scales='free_y')
+```
 
-# now change the grid to be vertical
-p <- ggplot(data = mpg, aes(x=displ, y=hwy)) + 
+We can also specify that the grid be vertical instead of horizontal.
+```{r horizontal_grid}
+ggplot(data = mpg, aes(x=displ, y=hwy)) + 
   geom_point() +
-  geom_smooth() +
-  facet_grid(year ~ .)
-p # plot it
-
-summary(p) # examine the components of the plot
-
-# now change the default method to lm
-p <- ggplot(data = mpg, aes(x=displ, y=hwy)) + 
-  geom_point() +
-  geom_smooth(method = "lm") +
-  facet_grid(year ~ .)
-p # plot it
-
-summary(p) # examine the components of the plot
-
-# review related slides - second time ####
-# see: AUX_lab-04_advanced-ggplot2_v1.x.pptx
-
-# build a plot layer by layer ####
-p <- ggplot(diamonds, aes(x=carat))
-summary(p)
-p # recall that we cannot render it yet without a layer
-
-# add a layer the long way
-p <- p + layer(
-  geom = "bar"
-  , geom_params = list(fill = "steelblue")
-  , stat = "bin"
-  , stat_params = list(binwidth = 2)
-)
-summary(p)
-p # now we can render it
-
-# add a layer the the short way
-p <- ggplot(diamonds, aes(x=carat)) +
-  geom_histogram(binwidth = 2, fill = "steelblue")
-summary(p)
-p # rendering is the same
-
-# geom_histogram() have default values for their geom and are therefore
-# easier/faster to use as compared to the layer() call; geom_XXX are called
-# shortcut functions
-
-# overriding default mappings in layer ####
-p <- ggplot(mtcars, aes(x = mpg, y=wt))
-p <- p + geom_point()
-p
-
-# override default color
-p <- p + geom_point(aes(colour=factor(cyl)))
-p # this makes sense
-
-# override x mapping
-p <- p + geom_point(aes(x=disp))
-p # looks strange; notice the extra points and the larger range of x
-
-# setting an aesthetic vs. mapping it ####
-p <- ggplot(mtcars, aes(x=mpg, y=wt))
-p <- p + geom_point(colour = "darkblue") # example of setting (vs. mapping)
-summary(p)
-p
-
-# now try mapping but using the constant value of "darkblue"
-p <- ggplot(mtcars, aes(x=mpg, y=wt))
-p <- p + geom_point(aes(colour = "darkblue")) # example of mapping (vs. setting)
-summary(p)
-p # why isn't it dark blue?
-
-# "This effectively creates a new variable containing only the value “darkblue” 
-# and then maps colour to that new variable. Because this value is discrete, the 
-# default colour scale uses evenly spaced colours on the colour wheel, and since 
-# there is only one value this colour is pinkish."
-
-# grouping observations ####
-# geoms can be roughly divided into individual and collective geoms. An individual 
-# geom has a distinctive graphical object for each row in the data frame. For example, 
-# the point geom has a single point for each observation. On the other hand, 
-# collective geoms represent multiple observations. This may be a result of a 
-# statistical summary, or may be fundamental to the display of the geom, as 
-# with polygons. Lines and paths fall somewhere in between: each overall line 
-# is composed of a set of straight segments, but each segment represents two points.
+  facet_grid(year ~ .) 
+```
 
 
-# examine the data 
-?Oxboys
-summary(Oxboys)
-str(Oxboys)
+## Coordinates
 
-# plot a line per subject
-p <- ggplot(Oxboys, aes(x=age, y=height)) +
-  geom_line()
-p # this looks strange; the line is going through all of the points instead
-# or rendering a line per subject
+## Some examples
 
-# correct this using the group aesthetics
-p <- ggplot(Oxboys, aes(x=age, y=height, group=Subject)) +
-  geom_line()
-p
-summary(p)
+### Airport Delays Over Time
 
-# now plot a linear fit for the whole dataset
-p <- ggplot(Oxboys, aes(age, height, group = Subject)) +
-  geom_line() + 
-  geom_smooth(method="lm", se=FALSE)
-p
+Data Prep  
+1. Add a binary flag (1/0) for delay
+2. Compute summaries by origin and month -- n = total flights, delay = total delayed flights
 
-# use group = 1 to ungroup from the main call to ggplot
-p <- ggplot(Oxboys, aes(age, height, group = Subject)) +
-  geom_line() + 
-  geom_smooth(aes(group = 1), method="lm", se=FALSE)
-p
+```{r data_prep}
+delay_by_month <- flights %>% mutate(delay=if_else(dep_delay > 0,1,0)) %>% 
+  group_by(origin,month) %>% summarise(n=n(),delay=sum(delay,na.rm=T))
+```
 
+The standard plot may look something like this.
+
+```{r standard1}
+ggplot(delay_by_month) +
+  geom_bar(aes(x=month,y=delay,fill=origin),position='dodge',stat='identity') +
+  scale_x_continuous(breaks=c(1:12)) +
+  labs(x='Month',y='# of Flights with a Delay',fill='Origin',title='LGA Often Has the Fewest Delays') +
+  theme_ipsum()
+```
+
+If we want to only highlight only the important stuff...
+```{r highlight_important}
+ggplot(delay_by_month) +
+  geom_bar(aes(x=month,y=delay,fill=origin),position='dodge',stat='identity',color='#8ca2a6') +
+  scale_x_continuous(breaks=c(1:12)) +
+  scale_fill_manual(values=alpha(c('#bcc3c4','#bcc3c4','#fbbf5e'),0.7)) +
+  labs(x='Month',y='# of Flights with a Delay',fill='Origin',title='LGA Often Has the Fewest Delays') +
+  theme_ipsum()
+```
+
+Push necessary, but non-message-impacting to the background...
+```{r push_back}
+ggplot(delay_by_month) + 
+  geom_line(aes(x=month,y=delay,color=origin),size=1) +
+  scale_color_manual(values=alpha(c('#bcc3c4','#bcc3c4','#fbbf5e'),0.7)) +
+  scale_x_continuous(breaks=c(1:12),labels=c('Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec')) +
+  labs(x='Month',y='# of Flights with a Delay',color='Origin',title='LGA Often Has the Fewest Delays') +
+  theme_ipsum() +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank())
+```
+
+### Delay Comparison
+
+Data Prep  
+1. Add variable for delay (1 = delay, 0 = not)
+2. Compute summaries of total flights and delays
+3. Add pct delayed and mean(n), mean(p)
+
+```{r final_data_prep}
+delay_by_carrier <- flights %>% mutate(delay=if_else(dep_delay > 0,1,0)) %>% 
+  group_by(carrier) %>% summarise(n=n(),delay=sum(delay,na.rm=T)) %>% ungroup() %>%
+  mutate(p=delay/n,mean_n=mean(n),mean_p=mean(p))
+
+quadrant_labels <- tibble(label=c('High Flights, Low Delay Pct','High Flights, High Delay Pct'),x=c(45000,45000),y=c(0.21,0.54),color=c('#292929','#fa6d29'))
+```
+
+
+Final scatterplot creating a visual hierarchy.
+
+```{r final,fig.width=10,fig.height=8}
+ggplot(delay_by_carrier) + 
   
+  geom_point(data=filter(delay_by_carrier,n < mean_n),aes(x=n,y=p),color='#bcc3c4',size=3) +
+  geom_text_repel(data=filter(delay_by_carrier,n < mean_n),aes(x=n,y=p,label = carrier),color='#bcc3c4',size=5) +
+  
+  geom_point(data=filter(delay_by_carrier,n >= mean_n,p < mean_p),aes(x=n,y=p),color='#fa6d29',size=3) +
+  geom_text_repel(data=filter(delay_by_carrier,n >= mean_n,p < mean_p),aes(x=n,y=p,label = carrier),color='#fa6d29',size=5) +
+
+  geom_point(data=filter(delay_by_carrier,n >= mean_n,p >= mean_p),aes(x=n,y=p),color='#292929',size=3) +
+  geom_text_repel(data=filter(delay_by_carrier,n >= mean_n,p >= mean_p),aes(x=n,y=p,label = carrier),color='#292929',size=5) +
+  
+  geom_hline(yintercept=mean(delay_by_carrier$p)) +
+  geom_vline(xintercept=mean(delay_by_carrier$n)) +
+  
+  scale_x_continuous(labels=scales::comma) +
+  scale_y_continuous(labels=scales::percent) +
+  labs(x='Total Flights',y='Percent Delayed',title='Percentage Delay vs Total Flights') +
+  
+  geom_text(data=quadrant_labels,aes(x=x,y=y,label=label,color=label),size=6) +
+  scale_color_manual(values=quadrant_labels$color) +
+  
+  theme_ipsum() +
+  theme(legend.position='none')
+```
