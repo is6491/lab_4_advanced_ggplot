@@ -1,19 +1,30 @@
 ---
 title: "Lab 4 : Advanced ggplot"
 author: "Jeremy Morris"
-output: 
-  html_document: 
-    theme: cosmo
+affiliation-title: "University of Utah"
+date: last-modified
+title-block-style: default
+title-block-banner: "#890000"
+format: 
+  html:
+      embed-resources: true
+      theme: flatly
+      code-block-bg: true
+      code-block-border-left: "#3ABFC0"
+      highlight-style: printing
+execute:
+    message: false
+    warning: false
+    error: false
 ---
 
+
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-library(ggplot2)
+#| include: false
 library(tidyverse)
 library(here)
 library(nlme)
 library(nycflights13)
-library(hrbrthemes)
 library(ggrepel)
 ```
 
@@ -144,7 +155,7 @@ p + geom_point() + theme_bw() + labs(title='theme_bw')
 p + geom_point() + theme_minimal() + labs(title='theme_minimal')
 p + geom_point() + theme_dark() + labs(title='theme_dark')
 p + geom_point() + theme_void() + labs(title='theme_void',subtitle='Great for defining your own axes')
-p + geom_point() + hrbrthemes::theme_ipsum() + labs(title='theme_ipsum',subtitle='Theme from an external package')
+p + geom_point() + theme_classic() + labs(title='theme_classic',subtitle='Removes the box around the plot')
 
 ```
 
@@ -168,8 +179,9 @@ The standard plot may look something like this.
 ggplot(delay_by_month) +
   geom_col(aes(x=month,y=delay,fill=origin),position='dodge') +
   scale_x_continuous(breaks=c(1:12)) +
-  labs(x='Month',y='# of Flights with a Delay',fill='Origin',title='LGA Often Has the Fewest Delays') +
-  theme_ipsum()
+  labs(x='Month',y='# of Flights with a Delay',fill='Origin',
+       title='LGA Often Has the Fewest Delays') +
+  theme_classic(base_size=15)
 ```
 
 If we want to only highlight only the important stuff...
@@ -178,8 +190,9 @@ ggplot(delay_by_month) +
   geom_bar(aes(x=month,y=delay,fill=origin),position='dodge',stat='identity',color='#8ca2a6') +
   scale_x_continuous(breaks=c(1:12)) +
   scale_fill_manual(values=alpha(c('#bcc3c4','#bcc3c4','#fbbf5e'),0.7)) +
-  labs(x='Month',y='# of Flights with a Delay',fill='Origin',title='LGA Often Has the Fewest Delays') +
-  theme_ipsum()
+  labs(x='Month',y='# of Flights with a Delay',fill='Origin',
+       title='LGA Often Has the Fewest Delays') +
+  theme_classic(base_size=15)
 ```
 
 Push necessary, but non-message-impacting to the background...
@@ -189,8 +202,9 @@ ggplot(delay_by_month) +
   geom_line(aes(x=month,y=delay,color=origin),size=1) +
   scale_color_manual(values=alpha(c('#bcc3c4','#bcc3c4','#fbbf5e'),0.7)) +
   scale_x_continuous(breaks=c(1:12),labels=month_list) +
-  labs(x='Month',y='# of Flights with a Delay',color='Origin',title='LGA Often Has the Fewest Delays') +
-  theme_ipsum() +
+  labs(x='Month',y='# of Flights with a Delay',color='Origin',
+       title='LGA Often Has the Fewest Delays') +
+  theme_classic(base_size=15) +
   theme(panel.grid.major.x = element_blank(),
         panel.grid.minor.x = element_blank(),
         panel.grid.minor.y = element_blank())
@@ -241,6 +255,6 @@ ggplot(delay_by_carrier) +
   geom_text(data=quadrant_labels,aes(x=x,y=y,label=label,color=label),size=6) +
   scale_color_manual(values=quadrant_labels$color) +
   
-  theme_ipsum() +
+  theme_classic() +
   theme(legend.position='none')
 ```
