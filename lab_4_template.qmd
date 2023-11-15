@@ -1,0 +1,34 @@
+---
+title: "Lab 4 : Advanced ggplot"
+author: "YOUR NAME GOES HERE"
+affiliation-title: "University of Utah"
+date: last-modified
+title-block-style: default
+title-block-banner: "#890000"
+format: 
+  html:
+      embed-resources: true
+      theme: flatly
+      code-block-bg: true
+      code-block-border-left: "#3ABFC0"
+      highlight-style: printing
+execute:
+    message: false
+    warning: false
+    error: false
+    echo: true
+---
+
+```{r setup}
+library(tidyverse)
+library(ggplot2)
+```
+
+## Plot Description
+
+Some text goes here describing your plot.
+
+## Plot
+
+```{r myplot}
+```

@@ -1,19 +1,30 @@
 ---
 title: "Lab 4 : Advanced ggplot"
 author: "Jeremy Morris"
-output: 
-  html_document: 
-    theme: cosmo
+affiliation-title: "University of Utah"
+date: last-modified
+title-block-style: default
+title-block-banner: "#890000"
+format: 
+  html:
+      embed-resources: true
+      theme: flatly
+      code-block-bg: true
+      code-block-border-left: "#3ABFC0"
+      highlight-style: printing
+execute:
+    message: false
+    warning: false
+    error: false
 ---
 
+
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-library(ggplot2)
+#| include: false
 library(tidyverse)
 library(here)
 library(nlme)
 library(nycflights13)
-library(hrbrthemes)
 library(ggrepel)
 ```
 
@@ -144,7 +155,7 @@ p + geom_point() + theme_bw() + labs(title='theme_bw')
 p + geom_point() + theme_minimal() + labs(title='theme_minimal')
 p + geom_point() + theme_dark() + labs(title='theme_dark')
 p + geom_point() + theme_void() + labs(title='theme_void',subtitle='Great for defining your own axes')
-p + geom_point() + hrbrthemes::theme_ipsum() + labs(title='theme_ipsum',subtitle='Theme from an external package')
+p + geom_point() + theme_classic() + labs(title='theme_classic',subtitle='Removes the box around the plot')
 
 ```
 
@@ -158,8 +169,8 @@ Data Prep
 2. Compute summaries by origin and month -- n = total flights, delay = total delayed flights
 
 ```{r data_prep}
-delay_by_month <- flights %>% mutate(delay=if_else(dep_delay > 0,1,0)) %>% 
-  group_by(origin,month) %>% summarise(n=n(),delay=sum(delay,na.rm=T))
+delay_by_month <- flights |> mutate(delay=if_else(dep_delay > 0,1,0)) |> 
+  group_by(origin,month) |> summarise(n=n(),delay=sum(delay,na.rm=T))
 ```
 
 The standard plot may look something like this.
@@ -168,8 +179,9 @@ The standard plot may look something like this.
 ggplot(delay_by_month) +
   geom_col(aes(x=month,y=delay,fill=origin),position='dodge') +
   scale_x_continuous(breaks=c(1:12)) +
-  labs(x='Month',y='# of Flights with a Delay',fill='Origin',title='LGA Often Has the Fewest Delays') +
-  theme_ipsum()
+  labs(x='Month',y='# of Flights with a Delay',fill='Origin',
+       title='LGA Often Has the Fewest Delays') +
+  theme_classic(base_size=15)
 ```
 
 If we want to only highlight only the important stuff...
@@ -178,8 +190,9 @@ ggplot(delay_by_month) +
   geom_bar(aes(x=month,y=delay,fill=origin),position='dodge',stat='identity',color='#8ca2a6') +
   scale_x_continuous(breaks=c(1:12)) +
   scale_fill_manual(values=alpha(c('#bcc3c4','#bcc3c4','#fbbf5e'),0.7)) +
-  labs(x='Month',y='# of Flights with a Delay',fill='Origin',title='LGA Often Has the Fewest Delays') +
-  theme_ipsum()
+  labs(x='Month',y='# of Flights with a Delay',fill='Origin',
+       title='LGA Often Has the Fewest Delays') +
+  theme_classic(base_size=15)
 ```
 
 Push necessary, but non-message-impacting to the background...
@@ -189,8 +202,9 @@ ggplot(delay_by_month) +
   geom_line(aes(x=month,y=delay,color=origin),size=1) +
   scale_color_manual(values=alpha(c('#bcc3c4','#bcc3c4','#fbbf5e'),0.7)) +
   scale_x_continuous(breaks=c(1:12),labels=month_list) +
-  labs(x='Month',y='# of Flights with a Delay',color='Origin',title='LGA Often Has the Fewest Delays') +
-  theme_ipsum() +
+  labs(x='Month',y='# of Flights with a Delay',color='Origin',
+       title='LGA Often Has the Fewest Delays') +
+  theme_classic(base_size=15) +
   theme(panel.grid.major.x = element_blank(),
         panel.grid.minor.x = element_blank(),
         panel.grid.minor.y = element_blank())
@@ -203,11 +217,18 @@ Data Prep
 1. Add variable for delay (1 = delay, 0 = not)
 2. Compute summaries of total flights and delays
 3. Add pct delayed and mean(n), mean(p)
+1. Create categories for quadrant labels and colors (make the data do all the work)
 
 ```{r final_data_prep}
-delay_by_carrier <- flights %>% mutate(delay=if_else(dep_delay > 0,1,0)) %>% 
-  group_by(carrier) %>% summarise(n=n(),delay=sum(delay,na.rm=T)) %>% ungroup() %>%
-  mutate(p=delay/n,mean_n=mean(n),mean_p=mean(p))
+delay_by_carrier <- flights |> mutate(delay=if_else(dep_delay > 0,1,0)) |> 
+    group_by(carrier) |> summarise(n=n(),delay=sum(delay,na.rm=T)) |> ungroup() |>
+    mutate(p=delay/n,mean_n=mean(n),mean_p=mean(p)) |>
+    mutate(quadrants=case_when(
+        n < mean_n ~ 'left pane',
+        n >= mean_n & p >= mean_p ~ 'upper right',
+        n >= mean_n & p < mean_p ~ 'lower right',
+        TRUE ~ 'OTHER'
+    ))
 
 quadrant_labels <- tibble(label=c('High Flights, Low Delay Pct','High Flights, High Delay Pct'),
                           x=c(45000,45000),y=c(0.21,0.54),color=c('#292929','#fa6d29'))
@@ -217,30 +238,22 @@ quadrant_labels <- tibble(label=c('High Flights, Low Delay Pct','High Flights, H
 Final scatterplot creating a visual hierarchy.
 
 ```{r final,fig.width=10,fig.height=8}
-ggplot(delay_by_carrier) + 
-  
-  geom_point(data=filter(delay_by_carrier,n < mean_n),aes(x=n,y=p),color='#bcc3c4',size=3) +
-  geom_text_repel(data=filter(delay_by_carrier,n < mean_n),aes(x=n,y=p,label = carrier),
-                  color='#bcc3c4',size=5) +
-  
-  geom_point(data=filter(delay_by_carrier,n >= mean_n,p < mean_p),aes(x=n,y=p),color='#fa6d29',size=3) +
-  geom_text_repel(data=filter(delay_by_carrier,n >= mean_n,p < mean_p),aes(x=n,y=p,label = carrier),
-                  color='#fa6d29',size=5) +
+ggplot(delay_by_carrier,aes(x=n,y=p,color=quadrants)) +
+    geom_point(size=3,show.legend=FALSE) +
+    geom_text_repel(aes(label=carrier),size=5,show.legend=FALSE) +
 
-  geom_point(data=filter(delay_by_carrier,n >= mean_n,p >= mean_p),aes(x=n,y=p),color='#292929',size=3) +
-  geom_text_repel(data=filter(delay_by_carrier,n >= mean_n,p >= mean_p),aes(x=n,y=p,label = carrier),
-                  color='#292929',size=5) +
+    geom_hline(yintercept=mean(delay_by_carrier$p)) +
+    geom_vline(xintercept=mean(delay_by_carrier$n)) +
   
-  geom_hline(yintercept=mean(delay_by_carrier$p)) +
-  geom_vline(xintercept=mean(delay_by_carrier$n)) +
-  
-  scale_x_continuous(labels=scales::comma) +
-  scale_y_continuous(labels=scales::percent) +
-  labs(x='Total Flights',y='Percent Delayed',title='Percentage Delay vs Total Flights') +
-  
-  geom_text(data=quadrant_labels,aes(x=x,y=y,label=label,color=label),size=6) +
-  scale_color_manual(values=quadrant_labels$color) +
-  
-  theme_ipsum() +
-  theme(legend.position='none')
+    scale_x_continuous(labels=scales::comma) +
+    scale_y_continuous(labels=scales::percent) +
+    labs(x='Total Flights',y='Percent Delayed',title='Percentage Delay vs Total Flights') +
+
+    geom_text(data=quadrant_labels,aes(x=x,y=y,label=label,color=label),size=6) +
+    scale_color_manual(values=c('#292929','#fa6d29','#bcc3c4','#fa6d29','#292929')) +
+
+    theme_bw(base_size=15) +
+    theme(legend.position='none',
+          panel.grid.major=element_blank(),
+          panel.grid.minor=element_blank())
 ```
